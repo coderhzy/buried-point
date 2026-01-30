@@ -1,5 +1,30 @@
 const API_BASE = '/api';
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public statusText: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function fetchWithErrorHandling<T>(url: string): Promise<T> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new ApiError(
+      `HTTP error ${response.status}: ${response.statusText}`,
+      response.status,
+      response.statusText
+    );
+  }
+
+  return response.json();
+}
+
 export interface DailyStats {
   date: string;
   pv: number;
@@ -36,20 +61,17 @@ export interface OverviewData {
 }
 
 export async function fetchOverview(): Promise<OverviewData> {
-  const response = await fetch(`${API_BASE}/stats/overview`);
-  return response.json();
+  return fetchWithErrorHandling<OverviewData>(`${API_BASE}/stats/overview`);
 }
 
 export async function fetchEventStats(): Promise<{ stats: EventStats[] }> {
-  const response = await fetch(`${API_BASE}/stats/events`);
-  return response.json();
+  return fetchWithErrorHandling<{ stats: EventStats[] }>(`${API_BASE}/stats/events`);
 }
 
 export async function fetchRecentEvents(
   limit = 20
 ): Promise<{ events: TrackEvent[] }> {
-  const response = await fetch(`${API_BASE}/events/recent?limit=${limit}`);
-  return response.json();
+  return fetchWithErrorHandling<{ events: TrackEvent[] }>(`${API_BASE}/events/recent?limit=${limit}`);
 }
 
 export async function fetchEvents(params?: {
@@ -64,6 +86,5 @@ export async function fetchEvents(params?: {
   if (params?.eventName) searchParams.set('eventName', params.eventName);
   if (params?.limit) searchParams.set('limit', String(params.limit));
 
-  const response = await fetch(`${API_BASE}/events?${searchParams}`);
-  return response.json();
+  return fetchWithErrorHandling<{ events: TrackEvent[]; total: number }>(`${API_BASE}/events?${searchParams}`);
 }

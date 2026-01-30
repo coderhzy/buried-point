@@ -13,6 +13,9 @@ export class AutoTracker {
   private pageStartTime: number = Date.now();
   private currentUrl: string = '';
   private enabled = false;
+  private abortController: AbortController | null = null;
+  private originalPushState: typeof history.pushState | null = null;
+  private originalReplaceState: typeof history.replaceState | null = null;
 
   constructor(callbacks: AutoTrackCallbacks) {
     this.callbacks = callbacks;
@@ -21,6 +24,7 @@ export class AutoTracker {
   start(): void {
     if (this.enabled) return;
     this.enabled = true;
+    this.abortController = new AbortController();
 
     this.currentUrl = window.location.href;
     this.pageStartTime = Date.now();
@@ -40,6 +44,22 @@ export class AutoTracker {
 
   stop(): void {
     this.enabled = false;
+
+    // Remove all event listeners
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+
+    // Restore original history methods
+    if (this.originalPushState) {
+      history.pushState = this.originalPushState;
+      this.originalPushState = null;
+    }
+    if (this.originalReplaceState) {
+      history.replaceState = this.originalReplaceState;
+      this.originalReplaceState = null;
+    }
   }
 
   private trackPageView(): void {
@@ -51,24 +71,28 @@ export class AutoTracker {
   }
 
   private setupRouteListener(): void {
+    const signal = this.abortController?.signal;
+
     // Handle popstate (back/forward)
     window.addEventListener('popstate', () => {
       if (!this.enabled) return;
       this.handleRouteChange();
-    });
+    }, { signal });
 
     // Intercept pushState and replaceState
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
+    this.originalPushState = history.pushState;
+    this.originalReplaceState = history.replaceState;
 
-    history.pushState = (...args) => {
-      originalPushState.apply(history, args);
-      if (this.enabled) this.handleRouteChange();
+    const self = this;
+
+    history.pushState = function(...args) {
+      self.originalPushState!.apply(history, args);
+      if (self.enabled) self.handleRouteChange();
     };
 
-    history.replaceState = (...args) => {
-      originalReplaceState.apply(history, args);
-      if (this.enabled) this.handleRouteChange();
+    history.replaceState = function(...args) {
+      self.originalReplaceState!.apply(history, args);
+      if (self.enabled) self.handleRouteChange();
     };
   }
 
@@ -90,6 +114,8 @@ export class AutoTracker {
   }
 
   private setupUnloadListener(): void {
+    const signal = this.abortController?.signal;
+
     window.addEventListener('beforeunload', () => {
       if (!this.enabled) return;
 
@@ -98,7 +124,7 @@ export class AutoTracker {
         url: this.currentUrl,
         duration,
       });
-    });
+    }, { signal });
 
     // Also handle visibilitychange for mobile
     document.addEventListener('visibilitychange', () => {
@@ -111,10 +137,12 @@ export class AutoTracker {
           duration,
         });
       }
-    });
+    }, { signal });
   }
 
   private collectPerformance(): void {
+    const signal = this.abortController?.signal;
+
     // Wait for page load
     if (document.readyState === 'complete') {
       this.reportPerformance();
@@ -122,7 +150,7 @@ export class AutoTracker {
       window.addEventListener('load', () => {
         // Delay to ensure metrics are available
         setTimeout(() => this.reportPerformance(), 1000);
-      });
+      }, { signal });
     }
   }
 

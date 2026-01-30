@@ -1,30 +1,67 @@
 // packages/server/src/routes/api.ts
 
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import type { TrackDatabase } from '../database';
+
+const eventTypeEnum = z.enum([
+  'page_view',
+  'click',
+  'expose',
+  'duration',
+  'performance',
+  'custom',
+]);
+
+const eventsQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  eventName: z.string().optional(),
+  eventType: eventTypeEnum.optional(),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 100))
+    .pipe(z.number().int().min(1).max(1000)),
+  offset: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 0))
+    .pipe(z.number().int().min(0)),
+});
+
+const recentEventsQuerySchema = z.object({
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 20))
+    .pipe(z.number().int().min(1).max(1000)),
+});
 
 export function registerApiRoutes(
   app: FastifyInstance,
   db: TrackDatabase
 ): void {
   // Get events list
-  app.get('/api/events', async (request) => {
-    const query = request.query as {
-      startDate?: string;
-      endDate?: string;
-      eventName?: string;
-      eventType?: string;
-      limit?: string;
-      offset?: string;
-    };
+  app.get('/api/events', async (request, reply) => {
+    const parseResult = eventsQuerySchema.safeParse(request.query);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: 'Invalid query parameters',
+        details: parseResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      });
+    }
+
+    const query = parseResult.data;
 
     const events = db.queryEvents({
       startDate: query.startDate,
       endDate: query.endDate,
       eventName: query.eventName,
       eventType: query.eventType,
-      limit: query.limit ? parseInt(query.limit, 10) : 100,
-      offset: query.offset ? parseInt(query.offset, 10) : 0,
+      limit: query.limit,
+      offset: query.offset,
     });
 
     return { events, total: events.length };
@@ -75,9 +112,17 @@ export function registerApiRoutes(
   });
 
   // Get recent events (for real-time feed)
-  app.get('/api/events/recent', async (request) => {
-    const query = request.query as { limit?: string };
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+  app.get('/api/events/recent', async (request, reply) => {
+    const parseResult = recentEventsQuerySchema.safeParse(request.query);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: 'Invalid query parameters',
+        details: parseResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      });
+    }
+
+    const { limit } = parseResult.data;
 
     const events = db.getRecentEvents(limit);
 

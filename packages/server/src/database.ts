@@ -136,19 +136,32 @@ export class TrackDatabase {
   }
 
   private upsertUser(event: TrackEvent): void {
+    // First, check if this session already exists for this user
+    const existingSession = this.db.prepare(`
+      SELECT 1 FROM events
+      WHERE device_id = @deviceId AND session_id = @sessionId
+      LIMIT 1
+    `).get({
+      deviceId: event.deviceId,
+      sessionId: event.sessionId,
+    });
+
+    const isNewSession = !existingSession;
+
     const stmt = this.db.prepare(`
-      INSERT INTO users (device_id, user_id, first_seen, last_seen)
-      VALUES (@deviceId, @userId, @timestamp, @timestamp)
+      INSERT INTO users (device_id, user_id, first_seen, last_seen, session_count)
+      VALUES (@deviceId, @userId, @timestamp, @timestamp, 1)
       ON CONFLICT(device_id) DO UPDATE SET
         user_id = COALESCE(@userId, user_id),
         last_seen = @timestamp,
-        session_count = session_count + 1
+        session_count = session_count + @sessionIncrement
     `);
 
     stmt.run({
       deviceId: event.deviceId,
       userId: event.userId ?? null,
       timestamp: event.timestamp,
+      sessionIncrement: isNewSession ? 1 : 0,
     });
   }
 
