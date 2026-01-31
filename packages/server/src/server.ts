@@ -25,7 +25,7 @@ export interface TrackServer {
 
 export function createServer(config: ServerConfig = {}): TrackServer {
   const {
-    port = 3000,
+    port = 1024,
     host = '0.0.0.0',
     database = './data/track.db',
     cors: corsOrigins = ['*'],

@@ -48,7 +48,7 @@ npx @buried-point/cli init
 
 ```bash
 # 启动埋点服务器
-bp serve --port 3000
+bp serve --port 1024
 
 # 启动 Dashboard
 bp dashboard --port 8080
@@ -66,7 +66,7 @@ npm install @buried-point/sdk-web
 import { BuriedPoint } from '@buried-point/sdk-web';
 
 const tracker = new BuriedPoint({
-  serverUrl: 'http://localhost:3000/track',
+  serverUrl: 'http://localhost:1024/track',
   appId: 'my-app',
   appVersion: '1.0.0',
   debug: true,  // 开发模式
@@ -134,7 +134,7 @@ bp init [dir]
 
 # 启动服务器
 bp serve [options]
-  -p, --port <port>      服务端口 (默认: 3000)
+  -p, --port <port>      服务端口 (默认: 1024)
   -h, --host <host>      服务地址 (默认: 0.0.0.0)
   -d, --database <path>  数据库路径 (默认: ./data/track.db)
 

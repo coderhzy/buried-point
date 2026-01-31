@@ -26,7 +26,7 @@ program
 program
   .command('serve')
   .description('Start the tracking server')
-  .option('-p, --port <port>', 'Server port', '3000')
+  .option('-p, --port <port>', 'Server port', '1024')
   .option('-h, --host <host>', 'Server host', '0.0.0.0')
   .option('-d, --database <path>', 'Database file path', './data/track.db')
   .action(async (options) => {

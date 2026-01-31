@@ -59,7 +59,7 @@ events:
 `;
 
 const CONFIG_TEMPLATE = `{
-  "serverUrl": "http://localhost:3000/track",
+  "serverUrl": "http://localhost:1024/track",
   "appId": "my-app",
   "appVersion": "1.0.0",
   "debug": true,
