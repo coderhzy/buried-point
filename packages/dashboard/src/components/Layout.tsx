@@ -5,6 +5,8 @@ const navItems = [
   { path: '/', label: '概览', icon: '📊' },
   { path: '/events', label: '事件分析', icon: '📈' },
   { path: '/schema', label: '埋点管理', icon: '📋' },
+  { path: '/users', label: '用户分析', icon: '👥' },
+  { path: '/settings', label: '设置', icon: '⚙️' },
 ];
 
 interface LayoutProps {

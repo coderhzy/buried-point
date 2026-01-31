@@ -1,0 +1,39 @@
+{
+  "name": "@buried-point/sdk-miniapp",
+  "version": "0.1.0",
+  "description": "MiniApp SDK for buried-point analytics (WeChat/Alipay/Douyin)",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "echo 'MiniApp SDK tests require miniapp environment - skipping'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "@buried-point/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "analytics",
+    "tracking",
+    "miniapp",
+    "wechat",
+    "alipay",
+    "douyin"
+  ]
+}

@@ -2,6 +2,7 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import type { SchemaConfig } from '@buried-point/core';
 import { TrackDatabase } from './database';
 import { registerTrackRoutes } from './routes/track';
 import { registerApiRoutes } from './routes/api';
@@ -12,6 +13,7 @@ export interface ServerConfig {
   database?: string;
   cors?: string[];
   logger?: boolean;
+  schema?: SchemaConfig;
 }
 
 export interface TrackServer {
@@ -28,6 +30,7 @@ export function createServer(config: ServerConfig = {}): TrackServer {
     database = './data/track.db',
     cors: corsOrigins = ['*'],
     logger = true,
+    schema: schemaConfig,
   } = config;
 
   const app = Fastify({ logger });
@@ -41,7 +44,7 @@ export function createServer(config: ServerConfig = {}): TrackServer {
 
   // Register routes
   registerTrackRoutes(app, db);
-  registerApiRoutes(app, db);
+  registerApiRoutes(app, db, schemaConfig);
 
   const start = async (): Promise<void> => {
     try {

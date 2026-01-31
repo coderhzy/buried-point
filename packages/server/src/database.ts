@@ -299,6 +299,239 @@ export class TrackDatabase {
     return this.queryEvents({ limit });
   }
 
+  /**
+   * Calculate funnel conversion analysis between event steps
+   * Returns the count of unique users at each step and conversion rates
+   */
+  getFunnelAnalysis(
+    steps: string[],
+    startDate: string,
+    endDate: string
+  ): {
+    steps: Array<{
+      step: number;
+      eventName: string;
+      users: number;
+      conversionRate: number;
+      dropoffRate: number;
+    }>;
+    overallConversion: number;
+  } {
+    if (steps.length === 0) {
+      return { steps: [], overallConversion: 0 };
+    }
+
+    const startTs = new Date(startDate).getTime();
+    const endTs = new Date(endDate).getTime();
+
+    const result: Array<{
+      step: number;
+      eventName: string;
+      users: number;
+      conversionRate: number;
+      dropoffRate: number;
+    }> = [];
+
+    let previousUsers = 0;
+    let firstStepUsers = 0;
+
+    for (let i = 0; i < steps.length; i++) {
+      const eventName = steps[i];
+
+      // Get users who performed this event and all previous events in sequence
+      let sql: string;
+      const params: Record<string, unknown> = {
+        startTs,
+        endTs,
+      };
+
+      if (i === 0) {
+        // First step: count unique users who performed this event
+        sql = `
+          SELECT COUNT(DISTINCT device_id) as userCount
+          FROM events
+          WHERE event_name = @eventName
+            AND timestamp >= @startTs
+            AND timestamp <= @endTs
+        `;
+        params.eventName = eventName;
+      } else {
+        // Subsequent steps: count users who performed this event after performing previous steps
+        // Build a CTE that tracks users through each step sequentially
+        const cteSteps: string[] = [];
+
+        for (let j = 0; j <= i; j++) {
+          const stepEventName = steps[j];
+          if (j === 0) {
+            cteSteps.push(`
+              step${j} AS (
+                SELECT DISTINCT device_id, MIN(timestamp) as step_time
+                FROM events
+                WHERE event_name = '${stepEventName.replace(/'/g, "''")}'
+                  AND timestamp >= @startTs
+                  AND timestamp <= @endTs
+                GROUP BY device_id
+              )
+            `);
+          } else {
+            cteSteps.push(`
+              step${j} AS (
+                SELECT DISTINCT e.device_id, MIN(e.timestamp) as step_time
+                FROM events e
+                INNER JOIN step${j - 1} prev ON e.device_id = prev.device_id
+                WHERE e.event_name = '${stepEventName.replace(/'/g, "''")}'
+                  AND e.timestamp >= prev.step_time
+                  AND e.timestamp >= @startTs
+                  AND e.timestamp <= @endTs
+                GROUP BY e.device_id
+              )
+            `);
+          }
+        }
+
+        sql = `
+          WITH ${cteSteps.join(', ')}
+          SELECT COUNT(*) as userCount FROM step${i}
+        `;
+      }
+
+      const row = this.db.prepare(sql).get(params) as { userCount: number };
+      const users = row.userCount;
+
+      if (i === 0) {
+        firstStepUsers = users;
+        previousUsers = users;
+      }
+
+      const conversionRate = firstStepUsers > 0 ? (users / firstStepUsers) * 100 : 0;
+      const dropoffRate = previousUsers > 0 ? ((previousUsers - users) / previousUsers) * 100 : 0;
+
+      result.push({
+        step: i + 1,
+        eventName,
+        users,
+        conversionRate: Math.round(conversionRate * 100) / 100,
+        dropoffRate: Math.round(dropoffRate * 100) / 100,
+      });
+
+      previousUsers = users;
+    }
+
+    const overallConversion =
+      firstStepUsers > 0 && result.length > 0
+        ? Math.round((result[result.length - 1].users / firstStepUsers) * 10000) / 100
+        : 0;
+
+    return { steps: result, overallConversion };
+  }
+
+  /**
+   * Calculate user retention matrix
+   * Returns retention data showing how many users return on subsequent days
+   */
+  getRetentionAnalysis(
+    startDate: string,
+    endDate: string,
+    days: number
+  ): {
+    cohorts: Array<{
+      cohortDate: string;
+      cohortSize: number;
+      retention: number[];
+    }>;
+    averageRetention: number[];
+  } {
+    const startTs = new Date(startDate).getTime();
+    const endTs = new Date(endDate).getTime();
+
+    // Get all cohort dates (days when users first appeared)
+    const cohortDates: string[] = [];
+    const currentDate = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (currentDate <= end) {
+      cohortDates.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const cohorts: Array<{
+      cohortDate: string;
+      cohortSize: number;
+      retention: number[];
+    }> = [];
+
+    const retentionSums: number[] = new Array(days).fill(0);
+    const retentionCounts: number[] = new Array(days).fill(0);
+
+    for (const cohortDate of cohortDates) {
+      const cohortStart = new Date(cohortDate).getTime();
+      const cohortEnd = cohortStart + 24 * 60 * 60 * 1000 - 1;
+
+      // Get users who first appeared on this date
+      const cohortUsers = this.db.prepare(`
+        SELECT device_id
+        FROM users
+        WHERE first_seen >= @cohortStart AND first_seen <= @cohortEnd
+      `).all({ cohortStart, cohortEnd }) as Array<{ device_id: string }>;
+
+      const cohortSize = cohortUsers.length;
+
+      if (cohortSize === 0) {
+        cohorts.push({
+          cohortDate,
+          cohortSize: 0,
+          retention: new Array(days).fill(0),
+        });
+        continue;
+      }
+
+      const deviceIds = cohortUsers.map((u) => u.device_id);
+      const retention: number[] = [];
+
+      // Calculate retention for each subsequent day
+      for (let day = 0; day < days; day++) {
+        const dayStart = cohortStart + day * 24 * 60 * 60 * 1000;
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000 - 1;
+
+        // Check if day is beyond our data range
+        if (dayStart > endTs) {
+          retention.push(0);
+          continue;
+        }
+
+        // Count how many cohort users were active on this day
+        const placeholders = deviceIds.map(() => '?').join(',');
+        const activeUsers = this.db.prepare(`
+          SELECT COUNT(DISTINCT device_id) as count
+          FROM events
+          WHERE device_id IN (${placeholders})
+            AND timestamp >= ?
+            AND timestamp <= ?
+        `).get([...deviceIds, dayStart, dayEnd]) as { count: number };
+
+        const retentionRate = Math.round((activeUsers.count / cohortSize) * 10000) / 100;
+        retention.push(retentionRate);
+
+        // Accumulate for average calculation
+        retentionSums[day] += retentionRate;
+        retentionCounts[day] += 1;
+      }
+
+      cohorts.push({
+        cohortDate,
+        cohortSize,
+        retention,
+      });
+    }
+
+    // Calculate average retention across all cohorts
+    const averageRetention = retentionSums.map((sum, i) =>
+      retentionCounts[i] > 0 ? Math.round((sum / retentionCounts[i]) * 100) / 100 : 0
+    );
+
+    return { cohorts, averageRetention };
+  }
+
   close(): void {
     this.db.close();
   }

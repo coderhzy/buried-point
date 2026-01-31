@@ -3,6 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { TrackDatabase } from '../database';
+import type { SchemaConfig } from '@buried-point/core';
 
 const eventTypeEnum = z.enum([
   'page_view',
@@ -38,9 +39,26 @@ const recentEventsQuerySchema = z.object({
     .pipe(z.number().int().min(1).max(1000)),
 });
 
+const funnelQuerySchema = z.object({
+  steps: z.string().min(1, 'steps parameter is required'),
+  startDate: z.string().min(1, 'startDate parameter is required'),
+  endDate: z.string().min(1, 'endDate parameter is required'),
+});
+
+const retentionQuerySchema = z.object({
+  startDate: z.string().min(1, 'startDate parameter is required'),
+  endDate: z.string().min(1, 'endDate parameter is required'),
+  days: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 7))
+    .pipe(z.number().int().min(1).max(30)),
+});
+
 export function registerApiRoutes(
   app: FastifyInstance,
-  db: TrackDatabase
+  db: TrackDatabase,
+  schemaConfig?: SchemaConfig
 ): void {
   // Get events list
   app.get('/api/events', async (request, reply) => {
@@ -127,6 +145,61 @@ export function registerApiRoutes(
     const events = db.getRecentEvents(limit);
 
     return { events };
+  });
+
+  // Get funnel analysis
+  app.get('/api/stats/funnel', async (request, reply) => {
+    const parseResult = funnelQuerySchema.safeParse(request.query);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: 'Invalid query parameters',
+        details: parseResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      });
+    }
+
+    const { steps, startDate, endDate } = parseResult.data;
+
+    // Parse comma-separated steps
+    const stepNames = steps.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+
+    if (stepNames.length === 0) {
+      return reply.status(400).send({
+        error: 'Invalid query parameters',
+        details: ['steps: At least one step is required'],
+      });
+    }
+
+    const analysis = db.getFunnelAnalysis(stepNames, startDate, endDate);
+
+    return analysis;
+  });
+
+  // Get retention analysis
+  app.get('/api/stats/retention', async (request, reply) => {
+    const parseResult = retentionQuerySchema.safeParse(request.query);
+
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: 'Invalid query parameters',
+        details: parseResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`),
+      });
+    }
+
+    const { startDate, endDate, days } = parseResult.data;
+
+    const analysis = db.getRetentionAnalysis(startDate, endDate, days);
+
+    return analysis;
+  });
+
+  // Get schema configuration
+  app.get('/api/schema', async () => {
+    if (!schemaConfig) {
+      return { available: false, schema: null };
+    }
+
+    return { available: true, schema: schemaConfig };
   });
 
   // Health check
