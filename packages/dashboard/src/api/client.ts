@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+// When deployed behind a proxy at /track-dashboard, API calls need the same prefix
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, '') + '/api' || '/api';
 
 export class ApiError extends Error {
   constructor(
