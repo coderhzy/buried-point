@@ -205,7 +205,8 @@ export class TrackDatabase {
 
     if (options.endDate) {
       sql += ' AND timestamp <= @endDate';
-      params.endDate = new Date(options.endDate).getTime();
+      // End of day: add 24 hours minus 1ms to include the entire end date
+      params.endDate = new Date(options.endDate).getTime() + 24 * 60 * 60 * 1000 - 1;
     }
 
     if (options.eventName) {
@@ -276,7 +277,8 @@ export class TrackDatabase {
       ORDER BY count DESC
     `).all({
       startTs: new Date(startDate).getTime(),
-      endTs: new Date(endDate).getTime(),
+      // End of day: add 24 hours minus 1ms to include the entire end date
+      endTs: new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1,
     }) as EventStats[];
 
     return rows;
