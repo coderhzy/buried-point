@@ -16,7 +16,7 @@ export default defineConfig({
       },
     },
   },
-  base: './',
+  base: '/track-dashboard/',
   build: {
     outDir: 'dist',
   },
