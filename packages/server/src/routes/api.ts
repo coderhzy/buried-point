@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { TrackDatabase } from '../database';
-import type { SchemaConfig } from '@buried-point/core';
+import type { SchemaConfig } from 'buried-point-core';
 
 const eventTypeEnum = z.enum([
   'page_view',

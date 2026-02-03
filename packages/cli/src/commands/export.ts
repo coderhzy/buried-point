@@ -2,8 +2,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { TrackDatabase } from '@buried-point/server';
-import type { TrackEvent } from '@buried-point/core';
+import { TrackDatabase } from 'buried-point-server';
+import type { TrackEvent } from 'buried-point-core';
 
 export interface ExportOptions {
   database: string;

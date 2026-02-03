@@ -1,5 +1,5 @@
 {
-  "name": "@buried-point/sdk-web",
+  "name": "buried-point-sdk-web",
   "version": "0.1.0",
   "description": "Web SDK for buried-point analytics",
   "main": "./dist/index.js",
@@ -26,9 +26,13 @@
     "@vitest/coverage-v8": "^1.6.0"
   },
   "dependencies": {
-    "@buried-point/core": "workspace:*"
+    "buried-point-core": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   }
 }

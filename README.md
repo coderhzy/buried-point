@@ -15,7 +15,7 @@
 ## 包结构
 
 ```
-@buried-point/
+buried-point-
 ├── core          # 核心类型定义、Schema 验证、工具函数
 ├── sdk-web       # 浏览器 SDK
 ├── sdk-miniapp   # 小程序 SDK (微信/支付宝/抖音)
@@ -24,19 +24,65 @@
 └── cli           # 命令行工具
 ```
 
+## NPM 包名
+
+| 包名 | 说明 |
+|------|------|
+| `buried-point-sdk-web` | Web 端 SDK |
+| `buried-point-core` | 核心类型和工具 |
+| `buried-point-server` | 服务端库 |
+| `buried-point-cli` | CLI 工具 |
+
 ## 快速开始
 
-### 1. 初始化项目
+### 方式一：Docker 部署（推荐）
+
+在你的项目 `docker-compose.yml` 中添加埋点服务：
+
+```yaml
+version: '3.8'
+
+services:
+  track-server:
+    image: crpi-p1yj6frf0klk58jo.cn-beijing.personal.cr.aliyuncs.com/xiaoman-geek/buried-point:latest
+    container_name: buried-point-server
+    restart: unless-stopped
+    ports:
+      - "1024:1024"
+    volumes:
+      - buried_point_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:1024/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  buried_point_data:
+    driver: local
+```
+
+启动服务：
+
+```bash
+docker-compose up -d track-server
+```
+
+服务启动后：
+- **API 端点**: `http://localhost:1024/api/track`
+- **Dashboard**: `http://localhost:1024`
+
+### 方式二：CLI 本地运行
 
 ```bash
 # 全局安装 CLI
-npm install -g @buried-point/cli
+npm install -g buried-point-cli
 
 # 初始化配置
 bp init
 
 # 或使用 npx
-npx @buried-point/cli init
+npx buried-point-cli init
 ```
 
 这会创建以下文件：
@@ -44,29 +90,28 @@ npx @buried-point/cli init
 - `track-config.json` - SDK 配置
 - `data/` - 数据库目录
 
-### 2. 启动服务
+启动服务：
 
 ```bash
-# 启动埋点服务器
-bp serve --port 1024
-
-# 启动 Dashboard
-bp dashboard --port 8080
+# 启动埋点服务器 (包含 Dashboard)
+bp serve --port 1024 --dashboard ./packages/dashboard/dist
 ```
 
-### 3. 集成 SDK
+### 集成 SDK
 
 #### Web 端
 
 ```bash
-npm install @buried-point/sdk-web
+npm install buried-point-sdk-web
+# 或
+pnpm add buried-point-sdk-web
 ```
 
 ```typescript
-import { BuriedPoint } from '@buried-point/sdk-web';
+import { BuriedPoint } from 'buried-point-sdk-web';
 
 const tracker = new BuriedPoint({
-  serverUrl: 'http://localhost:1024/track',
+  serverUrl: 'http://localhost:1024/api/track',
   appId: 'my-app',
   appVersion: '1.0.0',
   debug: true,  // 开发模式
@@ -98,14 +143,69 @@ tracker.expose('product_expose', [
 tracker.track('custom_event', { key: 'value' });
 ```
 
+#### React/Next.js 集成示例
+
+```typescript
+// lib/tracker.ts
+import { BuriedPoint } from 'buried-point-sdk-web';
+
+let tracker: BuriedPoint | null = null;
+
+export function getTracker(): BuriedPoint | null {
+  if (typeof window === 'undefined') return null;
+
+  if (!tracker) {
+    tracker = new BuriedPoint({
+      serverUrl: process.env.NEXT_PUBLIC_TRACK_SERVER_URL || 'http://localhost:1024/api/track',
+      appId: 'my-app',
+      appVersion: '1.0.0',
+      debug: process.env.NODE_ENV === 'development',
+    });
+  }
+
+  return tracker;
+}
+
+// 便捷方法
+export function trackClick(eventName: string, properties?: Record<string, unknown>) {
+  getTracker()?.click(eventName, properties || {});
+}
+
+export function trackExpose(eventName: string, properties?: Record<string, unknown>) {
+  getTracker()?.expose(eventName, properties || {});
+}
+```
+
+在组件中使用：
+
+```tsx
+import { trackClick } from '@/lib/tracker';
+
+function LoginButton() {
+  const handleClick = () => {
+    trackClick('login_button_click', { source: 'header' });
+    // 执行登录逻辑...
+  };
+
+  return <button onClick={handleClick}>登录</button>;
+}
+```
+
+环境变量配置：
+
+```bash
+# .env.local
+NEXT_PUBLIC_TRACK_SERVER_URL=http://localhost:1024/api/track
+```
+
 #### 小程序端
 
 ```bash
-npm install @buried-point/sdk-miniapp
+npm install buried-point-sdk-miniapp
 ```
 
 ```typescript
-import { BuriedPointMiniApp } from '@buried-point/sdk-miniapp';
+import { BuriedPointMiniApp } from 'buried-point-sdk-miniapp';
 
 // 平台自动检测 (微信/支付宝/抖音)
 const tracker = new BuriedPointMiniApp({
@@ -201,8 +301,7 @@ events:
 
 | 方法 | 路径 | 说明 |
 |-----|------|-----|
-| POST | `/track` | 上报单个事件 |
-| POST | `/track/batch` | 批量上报事件 |
+| POST | `/api/track` | 上报事件（支持单个或批量） |
 | GET | `/api/events` | 查询事件列表 |
 | GET | `/api/events/recent` | 最近事件 |
 | GET | `/api/stats/overview` | 概览统计 (PV/UV) |
@@ -365,6 +464,27 @@ Web SDK 自动采集以下数据：
 - [ ] Flutter SDK
 - [ ] 实时数据推送 (WebSocket)
 - [ ] 数据聚合优化
+
+## 部署建议
+
+### 使用 Nginx Proxy Manager
+
+如果使用 Nginx Proxy Manager 进行反向代理：
+
+1. 添加 Proxy Host：`track.yourdomain.com`
+2. Forward to：`buried-point-server:1024`
+3. 启用 SSL
+
+### 数据持久化
+
+Docker 部署时数据存储在 `/app/data/track.db`，通过 volume 挂载确保数据持久化。
+
+### 生产环境配置
+
+```bash
+# .env.production
+NEXT_PUBLIC_TRACK_SERVER_URL=https://track.yourdomain.com/api/track
+```
 
 ## 许可证
 

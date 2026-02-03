@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, type TrackServer } from '../server';
-import { generateEventId, generateDeviceId, generateSessionId } from '@buried-point/core';
+import { generateEventId, generateDeviceId, generateSessionId } from 'buried-point-core';
 import fs from 'fs';
 import path from 'path';
 

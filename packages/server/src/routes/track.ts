@@ -1,8 +1,8 @@
 // packages/server/src/routes/track.ts
 
 import type { FastifyInstance } from 'fastify';
-import { batchPayloadSchema, validateEvent } from '@buried-point/core';
-import type { TrackEvent, BatchPayload } from '@buried-point/core';
+import { batchPayloadSchema, validateEvent } from 'buried-point-core';
+import type { TrackEvent, BatchPayload } from 'buried-point-core';
 import type { TrackDatabase } from '../database';
 
 export function registerTrackRoutes(

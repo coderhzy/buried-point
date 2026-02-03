@@ -1,5 +1,5 @@
 {
-  "name": "@buried-point/dashboard",
+  "name": "buried-point-dashboard",
   "version": "0.1.0",
   "description": "Dashboard for buried-point analytics",
   "type": "module",

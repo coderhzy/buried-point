@@ -12,7 +12,7 @@ import {
   generateDeviceId,
   generateSessionId,
   SDK_VERSION,
-} from '@buried-point/core';
+} from 'buried-point-core';
 import { Transport } from './transport';
 import { storage } from './storage';
 import { AutoTracker } from './auto-track';

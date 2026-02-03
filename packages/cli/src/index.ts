@@ -29,11 +29,13 @@ program
   .option('-p, --port <port>', 'Server port', '1024')
   .option('-h, --host <host>', 'Server host', '0.0.0.0')
   .option('-d, --database <path>', 'Database file path', './data/track.db')
+  .option('--dashboard <path>', 'Dashboard static files directory')
   .action(async (options) => {
     await serve({
       port: parseInt(options.port, 10),
       host: options.host,
       database: options.database,
+      dashboard: options.dashboard,
     });
   });
 

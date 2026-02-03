@@ -15,4 +15,4 @@ export type {
   SchemaConfig,
   EventSchema,
   PropertySchema,
-} from '@buried-point/core';
+} from 'buried-point-core';

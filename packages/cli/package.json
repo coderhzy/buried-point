@@ -1,5 +1,5 @@
 {
-  "name": "@buried-point/cli",
+  "name": "buried-point-cli",
   "version": "0.1.0",
   "description": "CLI for buried-point analytics",
   "main": "./dist/index.js",
@@ -19,10 +19,14 @@
     "@types/fs-extra": "^11.0.0"
   },
   "dependencies": {
-    "@buried-point/server": "workspace:*",
+    "buried-point-server": "workspace:*",
     "commander": "^12.0.0",
     "chalk": "^5.3.0",
     "yaml": "^2.4.0",
     "fs-extra": "^11.2.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   }
 }

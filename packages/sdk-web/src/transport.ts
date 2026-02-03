@@ -1,6 +1,6 @@
 // packages/sdk-web/src/transport.ts
 
-import type { TrackEvent, BatchPayload, ServerResponse } from '@buried-point/core';
+import type { TrackEvent, BatchPayload, ServerResponse } from 'buried-point-core';
 
 export interface TransportConfig {
   serverUrl: string;

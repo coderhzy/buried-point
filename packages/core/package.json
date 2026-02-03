@@ -1,5 +1,5 @@
 {
-  "name": "@buried-point/core",
+  "name": "buried-point-core",
   "version": "0.1.0",
   "description": "Core types and utilities for buried-point",
   "main": "./dist/index.js",
@@ -30,5 +30,9 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   }
 }

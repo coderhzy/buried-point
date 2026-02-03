@@ -10,7 +10,7 @@ import {
   generateDeviceId,
   generateSessionId,
   SDK_VERSION,
-} from '@buried-point/core';
+} from 'buried-point-core';
 import { Transport } from './transport';
 import { createStorage, type StorageAdapter } from './storage';
 import type { MiniAppPlatform, MiniAppTrackerConfig, MiniAppPageInfo } from './types';

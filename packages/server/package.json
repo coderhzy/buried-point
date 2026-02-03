@@ -1,5 +1,5 @@
 {
-  "name": "@buried-point/server",
+  "name": "buried-point-server",
   "version": "0.1.0",
   "description": "Server for buried-point analytics",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/start.ts",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -27,10 +27,15 @@
     "@types/better-sqlite3": "^7.6.0"
   },
   "dependencies": {
-    "@buried-point/core": "workspace:*",
+    "buried-point-core": "workspace:*",
     "fastify": "^4.26.0",
     "@fastify/cors": "^9.0.0",
+    "@fastify/static": "^7.0.0",
     "better-sqlite3": "^9.4.0",
     "zod": "^3.22.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   }
 }

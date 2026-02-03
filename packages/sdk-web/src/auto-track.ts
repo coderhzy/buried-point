@@ -1,6 +1,6 @@
 // packages/sdk-web/src/auto-track.ts
 
-import type { PerformanceData } from '@buried-point/core';
+import type { PerformanceData } from 'buried-point-core';
 
 export interface AutoTrackCallbacks {
   onPageView: (data: { url: string; title: string; referrer: string }) => void;

@@ -1,6 +1,6 @@
 // packages/sdk-miniapp/src/transport.ts
 
-import type { TrackEvent, BatchPayload, ServerResponse } from '@buried-point/core';
+import type { TrackEvent, BatchPayload, ServerResponse } from 'buried-point-core';
 import type { MiniAppPlatform } from './types';
 
 export interface TransportConfig {

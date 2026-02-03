@@ -1,7 +1,7 @@
 // packages/server/src/database.ts
 
 import Database from 'better-sqlite3';
-import type { TrackEvent } from '@buried-point/core';
+import type { TrackEvent } from 'buried-point-core';
 
 export interface DatabaseConfig {
   path: string;
