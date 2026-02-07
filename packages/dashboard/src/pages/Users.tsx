@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { fetchRetentionStats, fetchOverview, type RetentionStats, type OverviewData } from '../api/client';
 import { format, subDays } from 'date-fns';
+import { exportToExcel } from '../utils/export';
 
 export function Users() {
   const [retentionData, setRetentionData] = useState<RetentionStats | null>(null);
@@ -132,9 +133,44 @@ export function Users() {
     return 'bg-red-300';
   };
 
+  const handleExportRetention = () => {
+    if (!retentionData) return;
+    const dayHeaders = Array.from({ length: retentionDays }, (_, i) => `Day ${i}`);
+    const headers = ['群组日期', '用户数', ...dayHeaders];
+    const rows = retentionData.cohorts.map((c) => [
+      c.cohortDate,
+      c.cohortSize,
+      ...c.retention.map((r) => (r > 0 ? `${r}%` : '-')),
+    ]);
+    exportToExcel('用户留存', headers, rows);
+  };
+
+  const handleExportDAU = () => {
+    if (!overviewData) return;
+    const headers = ['日期', 'DAU', 'PV', '事件数'];
+    const rows = overviewData.daily.map((d) => [d.date, d.uv, d.pv, d.eventCount]);
+    exportToExcel('每日活跃用户', headers, rows);
+  };
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Users</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Users</h2>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            onClick={handleExportDAU}
+          >
+            导出 DAU
+          </button>
+          <button
+            className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600"
+            onClick={handleExportRetention}
+          >
+            导出留存
+          </button>
+        </div>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-4 gap-6 mb-8">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { fetchOverview, fetchRecentEvents, type OverviewData, type TrackEvent } from '../api/client';
 import { format } from 'date-fns';
+import { exportToExcel } from '../utils/export';
 
 export function Overview() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
@@ -64,9 +65,38 @@ export function Overview() {
     ],
   };
 
+  const handleExportDailyStats = () => {
+    const headers = ['日期', 'PV', 'UV', '事件数'];
+    const rows = overview.daily.map((d) => [d.date, d.pv, d.uv, d.eventCount]);
+    exportToExcel('每日概览', headers, rows);
+  };
+
+  const handleExportRecentEvents = () => {
+    const headers = ['时间', '事件名', '事件类型', '平台', '设备ID', '会话ID', '页面URL', '属性'];
+    const rows = recentEvents.map((e) => [
+      format(new Date(e.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+      e.eventName,
+      e.eventType,
+      e.platform,
+      e.deviceId,
+      e.sessionId,
+      e.pageUrl || '',
+      JSON.stringify(e.properties),
+    ]);
+    exportToExcel('最近事件', headers, rows);
+  };
+
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">概览</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">概览</h2>
+        <button
+          className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          onClick={handleExportDailyStats}
+        >
+          导出每日数据
+        </button>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-6 mb-8">
@@ -92,7 +122,15 @@ export function Overview() {
 
       {/* Recent Events */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">最近事件</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">最近事件</h3>
+          <button
+            className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+            onClick={handleExportRecentEvents}
+          >
+            导出
+          </button>
+        </div>
         <table className="w-full">
           <thead>
             <tr className="text-left text-gray-500 border-b">

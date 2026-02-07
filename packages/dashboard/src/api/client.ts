@@ -81,14 +81,39 @@ export async function fetchEvents(params?: {
   endDate?: string;
   eventName?: string;
   limit?: number;
+  offset?: number;
 }): Promise<{ events: TrackEvent[]; total: number }> {
   const searchParams = new URLSearchParams();
   if (params?.startDate) searchParams.set('startDate', params.startDate);
   if (params?.endDate) searchParams.set('endDate', params.endDate);
   if (params?.eventName) searchParams.set('eventName', params.eventName);
   if (params?.limit) searchParams.set('limit', String(params.limit));
+  if (params?.offset) searchParams.set('offset', String(params.offset));
 
   return fetchWithErrorHandling<{ events: TrackEvent[]; total: number }>(`${API_BASE}/events?${searchParams}`);
+}
+
+export async function fetchAllEvents(params?: {
+  startDate?: string;
+  endDate?: string;
+  eventName?: string;
+}): Promise<TrackEvent[]> {
+  const pageSize = 1000;
+  let allEvents: TrackEvent[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { events } = await fetchEvents({
+      ...params,
+      limit: pageSize,
+      offset,
+    });
+    allEvents = allEvents.concat(events);
+    if (events.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return allEvents;
 }
 
 export interface FunnelStep {
