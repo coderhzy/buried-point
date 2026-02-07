@@ -1,4 +1,4 @@
-name: Build and Deploy Buried Point
+name: Build and Deploy Buried Point (Test)
 
 on:
   push:
